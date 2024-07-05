@@ -27,8 +27,7 @@ from utils.login_handler import restricted_page
 # Exposing the Flask Server to enable configuring it for logging in
 server = Flask(__name__)
 
-
-@server.route('/login', methods=['POST'])
+@server.route('/', methods=['POST'])
 def login_button_click():
     if request.form:
         username = request.form['username']
@@ -42,8 +41,26 @@ def login_button_click():
                     url = session['url']
                     session['url'] = None
                     return redirect(url) ## redirect to target url
-            return redirect('/') ## redirect to home
+            # hard redirect to this URL
+            return redirect('/page-2') ## redirect to page-2
         return """invalid username and/or password <a href='/login'>login here</a>"""
+
+@server.route('/login', methods=['POST'])
+def login_button_click_login():
+    if request.form:
+        username = request.form['username']
+        password = request.form['password']
+        if VALID_USERNAME_PASSWORD.get(username) is None:
+            return """invalid username and/or password <a href='/'>login here</a>"""
+        if VALID_USERNAME_PASSWORD.get(username) == password:
+            login_user(User(username))
+            if 'url' in session:
+                if session['url']:
+                    url = session['url']
+                    session['url'] = None
+                    return redirect(url) ## redirect to target url
+            return redirect('/') ## redirect to home
+        return """invalid username and/or password <a href='/'>login here</a>"""
 
 
 app = dash.Dash(
@@ -106,18 +123,18 @@ def update_authentication_status(path, n):
 
     ### test if user is logged in
     if current_user.is_authenticated:
-        if path == '/login':
-            return dcc.Link("logout", href="/logout"), '/'
-        return dcc.Link("logout", href="/logout"), dash.no_update
+        if path == '/':
+            return dcc.Link("logout", href="/"), '/'
+        return dcc.Link("logout", href="/"), dash.no_update
     else:
         ### if page is restricted, redirect to login and save path
         if path in restricted_page:
             session['url'] = path
-            return dcc.Link("login", href="/login"), '/login'
+            return dcc.Link("login", href="/"), '/'
 
     ### if path not login and logout display login link
     if current_user and path not in ['/login', '/logout']:
-        return dcc.Link("login", href="/login"), dash.no_update
+        return dcc.Link("login", href="/"), dash.no_update
 
     ### if path login and logout hide links
     if path in ['/login', '/logout']:
